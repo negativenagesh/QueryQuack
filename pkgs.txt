@@ -1,2 +1,11 @@
 streamlit
-pdfplumber
+pdfplumber 
+sentence-transformers
+pinecone-client 
+google-generativeai
+numpy 
+transformers 
+requests 
+pillow
+pytesseract
+python-docx
