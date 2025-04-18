@@ -10,3 +10,5 @@ pillow
 pytesseract
 python-docx
 python-pptx
+beautifulsoup4
+langchain
