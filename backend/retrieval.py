@@ -1,76 +1,84 @@
 import streamlit as st
-import os
 import numpy as np
+from backend.pinecone_storage import initialize_pinecone
 
-# Try importing the needed modules with a fallback
-ADVANCED_RETRIEVAL = False
-try:
-    from sentence_transformers import CrossEncoder
-    from backend.model_utils import ensure_model_exists, MODELS_DIR
-    ADVANCED_RETRIEVAL = True
-except (ImportError, RuntimeError):
-    st.warning("Advanced retrieval features unavailable")
-
-def retrieve_chunks(query_embedding, namespace='default', top_k=5):
-    """Retrieve top-k chunks from Pinecone and re-rank them if possible."""
+def retrieve_chunks(query_embedding, query_text=None, namespace="default", top_k=5):
+    """
+    Retrieve relevant chunks using vector similarity search.
+    
+    Args:
+        query_embedding: Query embedding vector
+        query_text: Optional query text for hybrid search/reranking
+        namespace: Pinecone namespace
+        top_k: Number of results to return
+        
+    Returns:
+        chunks: List of relevant text chunks with metadata
+    """
     try:
-        from backend.pinecone_storage import initialize_pinecone
+        # Initialize Pinecone index
         index = initialize_pinecone()
         if not index:
-            st.error("Failed to connect to Pinecone.")
+            st.error("Failed to initialize Pinecone for retrieval")
             return []
-            
-        # Make sure query_embedding is a list (not numpy array)
-        if isinstance(query_embedding, np.ndarray):
-            query_embedding = query_embedding.tolist()
-            
-        # Initial retrieval
-        results = index.query(
+        
+        # Perform vector search
+        search_results = index.query(
+            namespace=namespace,
             vector=query_embedding,
-            top_k=top_k * 2,  # Retrieve more for re-ranking
-            include_metadata=True,
-            namespace=namespace
+            top_k=top_k,
+            include_metadata=True
         )
         
-        if not results or 'matches' not in results or not results['matches']:
-            return []
-            
-        chunks = [
-            (match['metadata']['filename'], match['metadata'].get('chunk_index', 0), match['metadata']['text'])
-            for match in results['matches']
-            if 'metadata' in match and 'text' in match['metadata']
-        ]
-        
-        if not chunks:
-            return []
-        
-        # Only perform re-ranking if advanced features are available
-        if ADVANCED_RETRIEVAL:
-            try:
-                model_path = ensure_model_exists("ms-marco-MiniLM-L-6-v2")
-                if model_path:
-                    cross_encoder = CrossEncoder(model_path)
-                    
-                    # Use the query as the first element for comparison
-                    query_text = results['matches'][0]['metadata'].get('query_text', '')
-                    if not query_text:
-                        # If query_text isn't in metadata, use the first chunk's text as context
-                        query_text = chunks[0][2]
-                        
-                    pairs = [(query_text, chunk[2]) for chunk in chunks]
-                    scores = cross_encoder.predict(pairs)
-                    
-                    # Sort by score and return top-k
-                    ranked_chunks = [
-                        chunks[i] for i in sorted(range(len(scores)), key=lambda i: scores[i], reverse=True)
-                    ][:top_k]
-                    
-                    return ranked_chunks
-            except Exception as e:
-                st.warning(f"Re-ranking failed: {str(e)}. Using basic retrieval instead.")
+        # Extract and format results
+        chunks = []
+        for match in search_results.matches:
+            # Skip results with no metadata
+            if not hasattr(match, 'metadata') or not match.metadata:
+                continue
                 
-        # Fallback to basic top-k if re-ranking is unavailable or fails
-        return chunks[:top_k]
+            metadata = match.metadata
+            
+            # Ensure text field exists
+            if 'text' not in metadata:
+                continue
+                
+            # Create chunk object
+            chunk = {
+                'text': metadata['text'],
+                'metadata': metadata,
+                'score': match.score
+            }
+            
+            # Store source information for attribution
+            if 'sources_used' not in st.session_state:
+                st.session_state['sources_used'] = []
+                
+            if 'filename' in metadata and 'chunk_index' in metadata:
+                source_info = (metadata['filename'], metadata['chunk_index'])
+                if source_info not in st.session_state['sources_used']:
+                    st.session_state['sources_used'].append(source_info)
+            
+            chunks.append(chunk)
+        
+        # Print the number of chunks retrieved for debugging
+        if len(chunks) > 0:
+            st.success(f"Retrieved {len(chunks)} relevant chunks from document.")
+        else:
+            st.warning("No relevant chunks found in the document.")
+        
+        # Store debug info
+        if 'debug_info' not in st.session_state:
+            st.session_state['debug_info'] = {}
+            
+        st.session_state['debug_info']['retrieval'] = {
+            'query_text': query_text,
+            'top_k': top_k,
+            'num_results': len(chunks),
+            'namespace': namespace
+        }
+        
+        return chunks
         
     except Exception as e:
         st.error(f"Error retrieving chunks: {str(e)}")

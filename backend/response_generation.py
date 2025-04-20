@@ -1,106 +1,166 @@
-from transformers import AutoModelForCausalLM, AutoTokenizer
 import streamlit as st
 import os
-import re
-import torch
-from backend.model_utils import ensure_model_exists, MODELS_DIR
+from dotenv import load_dotenv
+from langchain.memory import ConversationBufferMemory  # Fixed import path
+from langchain.chains import ConversationalRetrievalChain
+from langchain_google_genai import ChatGoogleGenerativeAI
+from backend.query_processing import CUSTOM_QUESTION_PROMPT
+from backend.pinecone_storage import get_langchain_retriever
 
-def estimate_tokens(text):
-    """Roughly estimate the number of tokens in a text.
-    
-    For TinyLlama, which uses a BPE tokenizer similar to Llama, we estimate about 4 characters per token.
+# Load environment variables
+load_dotenv()
+
+def create_conversation_chain(namespace="default"):
     """
-    return len(text) // 4
-
-def generate_response(query, chunks):
-    """Generate a response using TinyLlama with source attribution."""
+    Create a LangChain conversation chain using Gemini model.
+    
+    Args:
+        namespace: Pinecone namespace
+        
+    Returns:
+        conversation_chain: LangChain ConversationalRetrievalChain
+    """
     try:
-        # Ensure model exists, download if not
-        model_path = ensure_model_exists("tinyllama-1.1b-chat")
-        if not model_path:
-            return "Sorry, I couldn't generate a response. The model is not available."
-            
-        # Load model and tokenizer for CPU
-        tokenizer = AutoTokenizer.from_pretrained(model_path, local_files_only=True)
-        # Set padding token to a value different from eos_token
-        if tokenizer.pad_token is None or tokenizer.pad_token == tokenizer.eos_token_id:
-            tokenizer.pad_token = tokenizer.eos_token
+        # Check if Google API key is set
+        api_key = os.environ.get("GOOGLE_API_KEY")
+        if not api_key:
+            st.error("Google API key not found. Please set the GOOGLE_API_KEY in your .env file.")
+            return None
         
-        model = AutoModelForCausalLM.from_pretrained(
-            model_path, 
-            local_files_only=True,
-            # Using default float32 precision for CPU compatibility
-            low_cpu_mem_usage=True      # Memory optimization for CPU
+        # Get retriever
+        retriever = get_langchain_retriever(namespace)
+        if not retriever:
+            st.error("Failed to create retriever")
+            return None
+        
+        # Create Gemini LLM
+        llm = ChatGoogleGenerativeAI(
+            model="gemini-1.5-flash",
+            google_api_key=api_key,
+            temperature=0.2,
+            convert_system_message_to_human=True
         )
         
-        # Sort chunks by relevance (assuming they're already ordered by relevance)
-        sorted_chunks = chunks
-        
-        # Format chunks into context, limiting context length for 8GB RAM constraints
-        context_parts = []
-        total_estimated_tokens = 0
-        max_context_tokens = 1200  # Reduced for CPU-only usage
-        
-        for pdf, chunk, text in sorted_chunks:
-            chunk_text = f"{pdf} (Chunk {chunk}): {text}"
-            chunk_tokens = estimate_tokens(chunk_text)
-            
-            if total_estimated_tokens + chunk_tokens <= max_context_tokens:
-                context_parts.append(chunk_text)
-                total_estimated_tokens += chunk_tokens
-            else:
-                break  # Stop adding chunks if we exceed token limit
-        
-        context = "\n".join(context_parts)
-        
-        # TinyLlama follows Llama 2 chat format
-        system_prompt = "You are a helpful AI assistant that provides accurate information based on the given context. Always cite your sources when providing information from documents."
-        user_prompt = f"""Using ONLY the following context, answer this query: {query}
-
-Context:
-{context}
-
-Answer concisely, citing the source PDF and chunk number. If the context doesn't contain relevant information to answer the query, respond with "No relevant information found."
-"""
-        
-        # Create the complete prompt
-        messages = [
-            {"role": "system", "content": system_prompt},
-            {"role": "user", "content": user_prompt}
-        ]
-        
-        # Convert messages to model format
-        prompt = tokenizer.apply_chat_template(messages, tokenize=False)
-        
-        # Generate with TinyLlama - properly handle padding and attention mask
-        inputs = tokenizer(
-            prompt, 
-            return_tensors="pt",
-            padding=True,
-            return_attention_mask=True  # Explicitly request attention mask
+        # Create memory
+        memory = ConversationBufferMemory(
+            memory_key='chat_history',
+            return_messages=True,
+            output_key='answer'
         )
         
-        # Generate the response, using more memory-efficient settings
-        with st.spinner("Generating response (this might take a while on CPU)..."):
-            with torch.inference_mode():  # Use inference mode to save memory
-                outputs = model.generate(
-                    inputs.input_ids,
-                    attention_mask=inputs.attention_mask,  # Add attention mask
-                    max_new_tokens=150,  # Further reduced for CPU usage
-                    temperature=0.3,     # Keep temperature
-                    top_p=0.9,           # Keep top_p
-                    do_sample=True,      # Enable sampling to use temperature and top_p
-                    pad_token_id=tokenizer.pad_token_id  # Use explicit pad token
-                )
+        # Create conversation chain
+        conversation_chain = ConversationalRetrievalChain.from_llm(
+            llm=llm,
+            retriever=retriever,
+            condense_question_prompt=CUSTOM_QUESTION_PROMPT,
+            memory=memory,
+            return_source_documents=True  # Make sure to return source documents
+        )
         
-        # Decode the generated text
-        generated_text = tokenizer.decode(outputs[0][inputs.input_ids.shape[1]:], skip_special_tokens=True)
+        return conversation_chain
         
-        # Clean up the response
-        response = generated_text.strip()
+    except Exception as e:
+        st.error(f"Error creating conversation chain: {str(e)}")
+        return None
+
+def generate_direct_response_with_chunks(query, chunks):
+    """Generate a direct response using retrieved chunks."""
+    try:
+        api_key = os.environ.get("GOOGLE_API_KEY")
+        if not api_key:
+            return "I can't provide information without a valid API key."
+            
+        llm = ChatGoogleGenerativeAI(
+            model="gemini-1.5-flash",
+            google_api_key=api_key,
+            temperature=0.3
+        )
         
-        return response if response else "No relevant information found."
+        # Build context from chunks
+        context = ""
+        for i, chunk in enumerate(chunks):
+            if i >= 5:  # Limit to top 5 chunks to avoid token limits
+                break
+            chunk_text = chunk.get('text', '')
+            if not chunk_text:
+                continue
+            context += f"\nDocument Excerpt {i+1}:\n{chunk_text}\n"
+        
+        # If no valid chunks were found, return an error
+        if not context.strip():
+            return "I couldn't extract useful content from the retrieved documents."
+        
+        prompt = f"""
+        Based ONLY on the following information from the documents:
+        
+        {context}
+        
+        Provide a comprehensive, well-organized answer to this query: "{query}"
+        
+        Your response should:
+        1. Be well-structured with clear headings if appropriate
+        2. Use bullet points for listing strategies, techniques, or steps
+        3. Directly answer the query using ONLY the information in the provided document excerpts
+        4. NOT include any information not found in the provided excerpts
+        5. Be factual and objective
+        """
+            
+        response = llm.invoke(prompt)
+        return response.content
+        
+    except Exception as e:
+        st.error(f"Error in generate_direct_response_with_chunks: {str(e)}")
+        return f"I encountered an error trying to answer your question: {str(e)}"
+
+def generate_response(query, chunks=None):
+    """
+    Generate a response to the query using LangChain with Gemini.
+    
+    Args:
+        query: User query
+        chunks: Retrieved text chunks
+        
+    Returns:
+        response: Generated response
+    """
+    try:
+        # ALWAYS try to use chunks directly if available
+        if chunks and len(chunks) > 0:
+            return generate_direct_response_with_chunks(query, chunks)
+        
+        # Only use conversation chain if no chunks were provided
+        if 'conversation_chain' not in st.session_state:
+            st.session_state.conversation_chain = create_conversation_chain(
+                namespace=st.session_state.namespace
+            )
+        
+        if not st.session_state.conversation_chain:
+            # If we have chunks but no conversation chain, still try to generate a response
+            if chunks and len(chunks) > 0:
+                return generate_direct_response_with_chunks(query, chunks)
+            return "Failed to create conversation chain. Please check your Google API key."
+        
+        # Generate response using conversation chain
+        with st.spinner("Generating response with Gemini..."):
+            response = st.session_state.conversation_chain({'question': query})
+            
+        # Store the last response in session state
+        if 'last_response' not in st.session_state:
+            st.session_state.last_response = response
+        
+        # Extract the answer from the response
+        answer = response.get('answer', "No answer found")
+        
+        return answer
         
     except Exception as e:
         st.error(f"Error generating response: {str(e)}")
-        return f"I encountered an error while generating a response: {str(e)}"
+        # ALWAYS try to use chunks as a fallback
+        if chunks and len(chunks) > 0:
+            try:
+                st.warning("Falling back to direct chunk processing...")
+                return generate_direct_response_with_chunks(query, chunks)
+            except Exception as inner_e:
+                st.error(f"Fallback also failed: {str(inner_e)}")
+        
+        return f"An error occurred: {str(e)}"
