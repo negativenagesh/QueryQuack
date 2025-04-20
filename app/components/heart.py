@@ -15,6 +15,8 @@ from backend.response_generation import generate_response
 from landing_page.components.navbar import render_navbar
 from landing_page.components.footer import render_footer
 
+# Remove the import for app.htmlTemplates
+
 # Initialize session state variables
 if "chat_history" not in st.session_state:
     st.session_state.chat_history = []
@@ -145,7 +147,6 @@ def show_main_app():
     if "query_input" not in st.session_state:
         st.session_state.query_input = ""
 
-
     # Apply styling
     load_css()
     
@@ -237,7 +238,7 @@ def show_main_app():
             else:
                 st.markdown(f'<div class="assistant-message"><strong>QueryQuack 🦆:</strong><br>{message["content"]}</div>', unsafe_allow_html=True)
     
-    # Process user query
+    # Move handle_user_query() out of display_chat_history() to make it accessible
     def handle_user_query():
         if not st.session_state.query_input:
             return
@@ -251,8 +252,15 @@ def show_main_app():
         st.session_state.query_input = ""
         
         try:
-            # Process the query
-            query_embedding, processed_query = process_query(query)
+            # Initialize session state for tracking sources if not exists
+            if 'sources_used' not in st.session_state:
+                st.session_state['sources_used'] = []
+                
+            if 'debug_info' not in st.session_state:
+                st.session_state['debug_info'] = {}
+            
+            # Process the query - updated to handle 3 return values
+            query_embedding, processed_query, original_query = process_query(query)
             
             if query_embedding is None:
                 st.session_state.chat_history.append({
@@ -261,11 +269,12 @@ def show_main_app():
                 })
                 return
             
-            # Retrieve relevant chunks
+            # Retrieve relevant chunks - updated to pass query text for re-ranking
             chunks = retrieve_chunks(
-                query_embedding, 
+                query_embedding,
+                query_text=processed_query,
                 namespace=st.session_state.namespace,
-                top_k=5
+                top_k=8  # Increased for better context
             )
             
             if not chunks:
@@ -275,14 +284,29 @@ def show_main_app():
                 })
                 return
             
-            # Generate response
-            answer = generate_response(processed_query, chunks)
+            # Generate response - passing original query
+            answer = generate_response(original_query, chunks)
+            
+            # Build the response with source information if available
+            response_text = answer
+            
+            # Optionally add sources attribution
+            if st.session_state['sources_used']:
+                sources_text = "\n\n**Sources:**\n"
+                for filename, chunk_index in st.session_state['sources_used']:
+                    sources_text += f"- {filename} (Chunk {chunk_index})\n"
+                response_text += sources_text
             
             # Add assistant response to chat history
             st.session_state.chat_history.append({
                 "role": "assistant", 
-                "content": answer
+                "content": response_text
             })
+            
+            # Optional: Display debug info in a separate expander
+            if st.session_state.get('debug_info') and len(st.session_state['debug_info']) > 0:
+                with st.expander("Debug Info", expanded=False):
+                    st.write(st.session_state['debug_info'])
             
         except Exception as e:
             st.session_state.chat_history.append({
@@ -345,7 +369,7 @@ def show_main_app():
             st.text_input(
                 "Type your question here",
                 key="query_input",
-                on_change=handle_user_query,
+                on_change=handle_user_query,  # This now references the function correctly
                 placeholder="What would you like to know about your documents?"
             )
             
