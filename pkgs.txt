@@ -2,6 +2,7 @@ streamlit
 pdfplumber 
 sentence-transformers
 pinecone-client 
+pinecone
 google-generativeai
 numpy 
 transformers 
@@ -12,3 +13,7 @@ python-docx
 python-pptx
 beautifulsoup4
 langchain
+python-dotenv
+markdown
+torch
+accelerate
