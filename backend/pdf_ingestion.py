@@ -16,24 +16,44 @@ import zipfile
 import tempfile
 
 def extract_text_from_pdf(pdf_file):
-    """Extract text from a PDF file, including OCR for scanned PDFs."""
+    """Extract text from a PDF file, with optional OCR for scanned PDFs.
+    
+    Args:
+        pdf_file: Either a file-like object or a path to a PDF file.
+    """
     text = ""
-    metadata = {}
+    tesseract_available = False
+    
+    # Check if tesseract is available
+    try:
+        import pytesseract
+        pytesseract.get_tesseract_version()
+        tesseract_available = True
+    except (ImportError, pytesseract.TesseractNotFoundError):
+        pass
+    
+    # Determine filename for metadata and error messages
+    if isinstance(pdf_file, str):
+        filename = os.path.basename(pdf_file)
+    else:
+        filename = getattr(pdf_file, 'name', 'unknown.pdf')
+    
+    metadata = {
+        "filename": filename,
+        "type": "pdf"
+    }
+    
     try:
         with pdfplumber.open(pdf_file) as pdf:
-            metadata = {
-                "filename": pdf_file.name,
-                "pages": len(pdf.pages),
-                "type": "pdf"
-            }
+            metadata["pages"] = len(pdf.pages)
             
             for page_num, page in enumerate(pdf.pages, 1):
                 # Try direct text extraction
                 extracted = page.extract_text()
                 if extracted and extracted.strip():
                     text += f"Page {page_num}: {extracted}\n\n"
-                else:
-                    # Fallback to OCR for scanned PDFs
+                elif tesseract_available:
+                    # Fallback to OCR only if tesseract is available
                     try:
                         img = page.to_image().original
                         ocr_text = pytesseract.image_to_string(img)
@@ -43,7 +63,10 @@ def extract_text_from_pdf(pdf_file):
                             text += f"Page {page_num}: [No text content detected]\n\n"
                     except Exception as ocr_err:
                         text += f"Page {page_num}: [OCR processing failed]\n\n"
-                        st.warning(f"OCR failed on page {page_num} of {pdf_file.name}: {str(ocr_err)}")
+                        st.warning(f"OCR failed on page {page_num} of {filename}: {str(ocr_err)}")
+                else:
+                    # No OCR available, skip this page
+                    text += f"Page {page_num}: [Text extraction failed and OCR not available]\n\n"
             
             # Add table extraction for more comprehensive results
             for page_num, page in enumerate(pdf.pages, 1):
@@ -58,8 +81,8 @@ def extract_text_from_pdf(pdf_file):
                         
         return text, metadata
     except Exception as e:
-        st.error(f"Error extracting text from {pdf_file.name}: {str(e)}")
-        return f"[Error processing file: {pdf_file.name}]", {"filename": pdf_file.name, "error": str(e), "type": "pdf"}
+        st.error(f"Error extracting text from {filename}: {str(e)}")
+        return f"[Error processing file: {filename}]", {"filename": filename, "error": str(e), "type": "pdf"}
 
 def extract_text_from_docx(docx_file):
     """Extract text from a DOCX file."""
