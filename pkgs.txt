@@ -18,3 +18,13 @@ markdown
 torch
 accelerate
 bitsandbytes
+python-dotenv
+langchain
+langchain-openai
+openai
+faiss-cpu
+langchain-google-genai
+google-generativeai
+faiss-cpu
+PyPDF2
+langchain-community
