@@ -1,9 +1,10 @@
 import os
-import streamlit as st
 import shutil
+import streamlit as st
 
-# Define path to models directory
+# Define models directory
 MODELS_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "models")
+os.makedirs(MODELS_DIR, exist_ok=True)
 
 def ensure_model_exists(model_name):
     """
@@ -16,7 +17,7 @@ def ensure_model_exists(model_name):
     os.makedirs(model_path, exist_ok=True)
     
     # Different check files for different model types
-    if model_name == "phi-3-mini":
+    if model_name == "tinyllama-1.1b-chat":
         check_file = os.path.join(model_path, "tokenizer_config.json")
     else:
         check_file = os.path.join(model_path, "config.json")
@@ -24,19 +25,20 @@ def ensure_model_exists(model_name):
     if not os.path.exists(check_file):
         st.info(f"Downloading model: {model_name}. This may take a few minutes...")
         try:
-            if model_name == "phi-3-mini":
+            if model_name == "tinyllama-1.1b-chat":
                 try:
                     from transformers import AutoTokenizer, AutoModelForCausalLM
+                    import torch
                     # Download to a temporary directory first
                     temp_path = os.path.join(MODELS_DIR, f"{model_name}_temp")
                     os.makedirs(temp_path, exist_ok=True)
                     
-                    # Download both model and tokenizer
-                    tokenizer = AutoTokenizer.from_pretrained("microsoft/phi-3-mini-4k-instruct")
+                    # Download model for CPU-only system (no CUDA)
+                    tokenizer = AutoTokenizer.from_pretrained("TinyLlama/TinyLlama-1.1B-Chat-v1.0")
                     model = AutoModelForCausalLM.from_pretrained(
-                        "microsoft/phi-3-mini-4k-instruct", 
-                        torch_dtype="auto", 
-                        device_map="auto"
+                        "TinyLlama/TinyLlama-1.1B-Chat-v1.0", 
+                        # Using default dtype (float32) for CPU compatibility
+                        low_cpu_mem_usage=True      # Memory optimization for CPU
                     )
                     
                     # Save to the temporary location
@@ -54,14 +56,6 @@ def ensure_model_exists(model_name):
                 try:
                     from sentence_transformers import SentenceTransformer
                     model = SentenceTransformer("sentence-transformers/all-MiniLM-L6-v2")
-                    model.save(model_path)
-                except Exception as e:
-                    st.error(f"Error downloading {model_name}: {str(e)}")
-                    return None
-            elif model_name == "ms-marco-MiniLM-L-6-v2":
-                try:
-                    from sentence_transformers import CrossEncoder
-                    model = CrossEncoder("cross-encoder/ms-marco-MiniLM-L-6-v2")
                     model.save(model_path)
                 except Exception as e:
                     st.error(f"Error downloading {model_name}: {str(e)}")
