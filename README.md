@@ -66,9 +66,8 @@ echo "PINECONE_INDEX=your_index_name_here" >> .env
 ```
 ## Landing Page
 
-<div align="center>
-
-![Landing page](image.png)
+<div align="center">
+    <img src="image.png" alt="Landing page" width="100%"/>
 </div>
 
 ## Data Flow
