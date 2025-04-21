@@ -68,7 +68,7 @@ echo "PINECONE_INDEX=your_index_name_here" >> .env
 
 <div align="center>
 
-![alt text](image.png)
+![Landing page](image.png)
 </div>
 
 ## Data Flow
