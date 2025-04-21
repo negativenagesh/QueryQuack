@@ -251,6 +251,105 @@ body {
     border-top: 1px solid #333333;
 }
 
+/* Query interface styling */
+.chat-container {
+    background-color: #2a2a2a;
+    border-radius: 15px;
+    padding: 20px;
+    margin-bottom: 15px;
+    box-shadow: 0 10px 30px rgba(0, 255, 0, 0.2), 
+                0 0 15px rgba(0, 255, 0, 0.15) inset;
+    border: 1px solid rgba(0, 255, 0, 0.1);
+}
+
+.user-message {
+    background-color: #3a3a3a;
+    padding: 15px;
+    border-radius: 8px;
+    margin-bottom: 10px;
+    border-left: 3px solid #00ff00;
+}
+
+.assistant-message {
+    background-color: #222222;
+    padding: 15px;
+    border-radius: 8px;
+    margin-bottom: 10px;
+    border-left: 3px solid #00ff00;
+}
+
+/* Upload section styling */
+.upload-section {
+    background-color: #2a2a2a;
+    border-radius: 15px;
+    padding: 20px;
+    margin-bottom: 15px;
+    box-shadow: 0 10px 30px rgba(0, 255, 0, 0.2), 
+                0 0 15px rgba(0, 255, 0, 0.15) inset;
+    border: 1px solid rgba(0, 255, 0, 0.1);
+}
+
+.file-list {
+    margin-top: 20px;
+    padding: 10px;
+    background-color: #333333;
+    border-radius: 8px;
+}
+
+.file-item {
+    display: flex;
+    align-items: center;
+    padding: 8px;
+    border-bottom: 1px solid rgba(0, 255, 0, 0.1);
+}
+
+.file-item:last-child {
+    border-bottom: none;
+}
+
+.file-icon {
+    color: #00ff00;
+    margin-right: 10px;
+}
+
+/* Custom button styling */
+.custom-button {
+    background-color: #00ff00;
+    color: #1a1a1a;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 5px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.custom-button:hover {
+    background-color: #00cc00;
+    transform: translateY(-2px);
+}
+
+/* Chat input styling */
+.stTextInput>div>div>input {
+    background-color: #333333;
+    border: 1px solid rgba(0, 255, 0, 0.3);
+    color: white;
+}
+
+/* Background styling */
+body {
+    background-color: #1a1a1a !important;
+}
+
+.stApp {
+    background-color: #1a1a1a;
+    background: radial-gradient(circle, rgba(0, 255, 0, 0.06) 0%, transparent 70%);
+}
+
+html {
+    scroll-behavior: smooth;
+}
+
 .footer-content {
     display: flex;
     justify-content: space-between;
