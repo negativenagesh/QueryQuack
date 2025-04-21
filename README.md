@@ -73,7 +73,7 @@ echo "PINECONE_INDEX=your_index_name_here" >> .env
 ## Main page
 
 <div align="center">
-    <img src="mainpage.png" alt="Main page" width="100%"/>s
+    <img src="mainpage.png" alt="Main page" width="100%"/>
 </div>
 
 ## Data Flow
