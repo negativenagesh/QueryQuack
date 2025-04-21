@@ -15,8 +15,6 @@ from backend.response_generation import generate_response
 from landing_page.components.navbar import render_navbar
 from landing_page.components.footer import render_footer
 
-# Remove the import for app.htmlTemplates
-
 # Initialize session state variables
 if "chat_history" not in st.session_state:
     st.session_state.chat_history = []
@@ -31,107 +29,9 @@ def load_css():
     with open("landing_page/styles/styles.css") as f:
         main_css = f.read()
     
-    # Add additional CSS specific to the heart.py functionality
-    additional_css = """
-    /* Query interface styling */
-    .chat-container {
-        background-color: #2a2a2a;
-        border-radius: 15px;
-        padding: 20px;
-        margin-bottom: 15px;
-        box-shadow: 0 10px 30px rgba(0, 255, 0, 0.2), 
-                    0 0 15px rgba(0, 255, 0, 0.15) inset;
-        border: 1px solid rgba(0, 255, 0, 0.1);
-    }
-    
-    .user-message {
-        background-color: #3a3a3a;
-        padding: 15px;
-        border-radius: 8px;
-        margin-bottom: 10px;
-        border-left: 3px solid #00ff00;
-    }
-    
-    .assistant-message {
-        background-color: #222222;
-        padding: 15px;
-        border-radius: 8px;
-        margin-bottom: 10px;
-        border-left: 3px solid #00ff00;
-    }
-    
-    /* Upload section styling */
-    .upload-section {
-        background-color: #2a2a2a;
-        border-radius: 15px;
-        padding: 20px;
-        margin-bottom: 15px;
-        box-shadow: 0 10px 30px rgba(0, 255, 0, 0.2), 
-                    0 0 15px rgba(0, 255, 0, 0.15) inset;
-        border: 1px solid rgba(0, 255, 0, 0.1);
-    }
-    
-    .file-list {
-        margin-top: 20px;
-        padding: 10px;
-        background-color: #333333;
-        border-radius: 8px;
-    }
-    
-    .file-item {
-        display: flex;
-        align-items: center;
-        padding: 8px;
-        border-bottom: 1px solid rgba(0, 255, 0, 0.1);
-    }
-    
-    .file-item:last-child {
-        border-bottom: none;
-    }
-    
-    .file-icon {
-        color: #00ff00;
-        margin-right: 10px;
-    }
-    
-    /* Custom button styling */
-    .custom-button {
-        background-color: #00ff00;
-        color: #1a1a1a;
-        border: none;
-        padding: 10px 20px;
-        border-radius: 5px;
-        font-weight: bold;
-        cursor: pointer;
-        transition: all 0.3s ease;
-    }
-    
-    .custom-button:hover {
-        background-color: #00cc00;
-        transform: translateY(-2px);
-    }
-    
-    /* Chat input styling */
-    .stTextInput>div>div>input {
-        background-color: #333333;
-        border: 1px solid rgba(0, 255, 0, 0.3);
-        color: white;
-    }
-    
-    /* Background styling */
-    body {
-        background-color: #1a1a1a !important;
-    }
-    
-    .stApp {
-        background-color: #1a1a1a;
-        background: radial-gradient(circle, rgba(0, 255, 0, 0.06) 0%, transparent 70%);
-    }
-    
-    html {
-        scroll-behavior: smooth;
-    }
-    """
+    # Load additional CSS for heart.py functionality
+    with open("landing_page/styles/styles.css") as f:
+        additional_css = f.read()
     
     # Combine CSS and apply
     st.markdown(f"<style>{main_css}\n{additional_css}</style>", unsafe_allow_html=True)
@@ -156,8 +56,8 @@ def show_main_app():
     # Add a container with proper styling for the main content
     st.markdown(
         """
-        <div style="padding: 40px; max-width: 1200px; margin: 0 auto; color: white;">
-        <h1 style="color: #00ff00; font-size: 42px; margin-bottom: 30px;">QueryQuack - PDF Query Engine</h1>
+        <div style="padding: 40px; max-width: 1200px; margin: 0 auto; text-align: center; color: white;">
+        <h1 style="color: white; font-size: 42px; margin-bottom: 30px;">QueryQuack - PDF Query Engine</h1>
         </div>
         """, 
         unsafe_allow_html=True
