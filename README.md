@@ -64,10 +64,16 @@ echo "PINECONE_API_KEY=your_pinecone_api_key_here" >> .env
 echo "PINECONE_ENVIRONMENT=your_environment_here" >> .env
 echo "PINECONE_INDEX=your_index_name_here" >> .env
 ```
-## Landing Page
+## Landing page
 
 <div align="center">
-    <img src="image.png" alt="Landing page" width="100%"/>
+    <img src="landingpage.png" alt="Landing page" width="100%"/>
+</div>
+
+## Main page
+
+<div align="center">
+    <img src="mainpage.png" alt="Main page" width="100%"/>s
 </div>
 
 ## Data Flow
