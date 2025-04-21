@@ -28,3 +28,4 @@ google-generativeai
 faiss-cpu
 PyPDF2
 langchain-community
+hf_xet
