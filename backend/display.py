@@ -32,7 +32,6 @@ def display_results(answer, chunks, confidence_scores=None):
             confidence = confidence_scores[i] if confidence_scores else "N/A"
             with st.expander(f"{pdf} (Chunk {chunk}, Confidence: {confidence})"):
                 st.write(text)
-                # Placeholder for PDF viewer (requires additional libraries like streamlit-pdf-viewer)
                 st.write(f"View {pdf} in external viewer (not implemented).")
     else:
         st.warning("No sources found.")

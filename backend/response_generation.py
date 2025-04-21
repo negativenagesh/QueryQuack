@@ -1,13 +1,12 @@
 import streamlit as st
 import os
 from dotenv import load_dotenv
-from langchain.memory import ConversationBufferMemory  # Fixed import path
+from langchain.memory import ConversationBufferMemory
 from langchain.chains import ConversationalRetrievalChain
 from langchain_google_genai import ChatGoogleGenerativeAI
 from backend.query_processing import CUSTOM_QUESTION_PROMPT
 from backend.pinecone_storage import get_langchain_retriever
 
-# Load environment variables
 load_dotenv()
 
 def create_conversation_chain(namespace="default"):
@@ -21,19 +20,16 @@ def create_conversation_chain(namespace="default"):
         conversation_chain: LangChain ConversationalRetrievalChain
     """
     try:
-        # Check if Google API key is set
         api_key = os.environ.get("GOOGLE_API_KEY")
         if not api_key:
             st.error("Google API key not found. Please set the GOOGLE_API_KEY in your .env file.")
             return None
         
-        # Get retriever
         retriever = get_langchain_retriever(namespace)
         if not retriever:
             st.error("Failed to create retriever")
             return None
         
-        # Create Gemini LLM
         llm = ChatGoogleGenerativeAI(
             model="gemini-1.5-flash",
             google_api_key=api_key,
@@ -41,20 +37,18 @@ def create_conversation_chain(namespace="default"):
             convert_system_message_to_human=True
         )
         
-        # Create memory
         memory = ConversationBufferMemory(
             memory_key='chat_history',
             return_messages=True,
             output_key='answer'
         )
         
-        # Create conversation chain
         conversation_chain = ConversationalRetrievalChain.from_llm(
             llm=llm,
             retriever=retriever,
             condense_question_prompt=CUSTOM_QUESTION_PROMPT,
             memory=memory,
-            return_source_documents=True  # Make sure to return source documents
+            return_source_documents=True
         )
         
         return conversation_chain
@@ -76,17 +70,15 @@ def generate_direct_response_with_chunks(query, chunks):
             temperature=0.3
         )
         
-        # Build context from chunks
         context = ""
         for i, chunk in enumerate(chunks):
-            if i >= 5:  # Limit to top 5 chunks to avoid token limits
+            if i >= 5:  
                 break
             chunk_text = chunk.get('text', '')
             if not chunk_text:
                 continue
             context += f"\nDocument Excerpt {i+1}:\n{chunk_text}\n"
         
-        # If no valid chunks were found, return an error
         if not context.strip():
             return "I couldn't extract useful content from the retrieved documents."
         
@@ -124,38 +116,31 @@ def generate_response(query, chunks=None):
         response: Generated response
     """
     try:
-        # ALWAYS try to use chunks directly if available
         if chunks and len(chunks) > 0:
             return generate_direct_response_with_chunks(query, chunks)
         
-        # Only use conversation chain if no chunks were provided
         if 'conversation_chain' not in st.session_state:
             st.session_state.conversation_chain = create_conversation_chain(
                 namespace=st.session_state.namespace
             )
         
         if not st.session_state.conversation_chain:
-            # If we have chunks but no conversation chain, still try to generate a response
             if chunks and len(chunks) > 0:
                 return generate_direct_response_with_chunks(query, chunks)
             return "Failed to create conversation chain. Please check your Google API key."
         
-        # Generate response using conversation chain
         with st.spinner("Generating response with Gemini..."):
             response = st.session_state.conversation_chain({'question': query})
             
-        # Store the last response in session state
         if 'last_response' not in st.session_state:
             st.session_state.last_response = response
         
-        # Extract the answer from the response
         answer = response.get('answer', "No answer found")
         
         return answer
         
     except Exception as e:
         st.error(f"Error generating response: {str(e)}")
-        # ALWAYS try to use chunks as a fallback
         if chunks and len(chunks) > 0:
             try:
                 st.warning("Falling back to direct chunk processing...")

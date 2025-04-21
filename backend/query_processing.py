@@ -3,7 +3,6 @@ import re
 from langchain.prompts import PromptTemplate
 from backend.model_utils import ensure_model_exists
 
-# Custom template to guide LLM model in rephrasing questions
 custom_template = """Given the following conversation and a follow up question, rephrase the follow up question to be a standalone question, in its original language.
 Chat History:
 {chat_history}
@@ -14,13 +13,10 @@ CUSTOM_QUESTION_PROMPT = PromptTemplate.from_template(custom_template)
 
 def rewrite_query(query):
     """Optionally rewrite the query to improve retrieval."""
-    # Simple query enhancement
     query = query.strip()
     
-    # Remove question indicators at the end
     query = re.sub(r'\?+$', '', query)
     
-    # Remove filler phrases
     fillers = [
         r'^(please\s+)?tell\s+me\s+about\s+',
         r'^(please\s+)?explain\s+',
@@ -49,7 +45,6 @@ def process_query(query, rewrite=True):
     try:
         original_query = query
         
-        # Store the original query for reference
         if 'original_query' not in st.session_state:
             st.session_state['original_query'] = original_query
             
@@ -58,22 +53,18 @@ def process_query(query, rewrite=True):
         else:
             processed_query = query
             
-        # Ensure embedding model exists
         model_path = ensure_model_exists("all-MiniLM-L6-v2")
         if not model_path:
             st.error("Failed to load embedding model")
             return None, processed_query, original_query
             
-        # Import here to avoid circular imports
         from langchain_community.embeddings import HuggingFaceEmbeddings
         
-        # Create embeddings model
         embeddings_model = HuggingFaceEmbeddings(
             model_name=model_path,
             model_kwargs={'device': 'cpu'}
         )
         
-        # Create query embedding
         query_embedding = embeddings_model.embed_query(processed_query)
         
         return query_embedding, processed_query, original_query

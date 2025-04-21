@@ -18,20 +18,17 @@ def extract_text_from_pdf(pdf_path):
         text = ""
         pdf_reader = PdfReader(pdf_path)
         
-        # Extract metadata
         metadata = {}
         if pdf_reader.metadata:
             for key, value in pdf_reader.metadata.items():
                 if key and value and isinstance(key, str) and isinstance(value, str):
-                    # Remove the leading slash from PDF metadata keys
                     clean_key = key.replace('/', '') if key.startswith('/') else key
                     metadata[clean_key] = value
         
-        # Extract text from each page
         for page in pdf_reader.pages:
             page_text = page.extract_text()
             if page_text:
-                text += page_text + "\n\n"  # Add double newline between pages
+                text += page_text + "\n\n"
         
         if not text:
             st.warning("No text extracted from PDF. The file might be scanned or image-based.")

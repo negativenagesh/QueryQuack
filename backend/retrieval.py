@@ -16,13 +16,11 @@ def retrieve_chunks(query_embedding, query_text=None, namespace="default", top_k
         chunks: List of relevant text chunks with metadata
     """
     try:
-        # Initialize Pinecone index
         index = initialize_pinecone()
         if not index:
             st.error("Failed to initialize Pinecone for retrieval")
             return []
         
-        # Perform vector search
         search_results = index.query(
             namespace=namespace,
             vector=query_embedding,
@@ -30,27 +28,22 @@ def retrieve_chunks(query_embedding, query_text=None, namespace="default", top_k
             include_metadata=True
         )
         
-        # Extract and format results
         chunks = []
         for match in search_results.matches:
-            # Skip results with no metadata
             if not hasattr(match, 'metadata') or not match.metadata:
                 continue
                 
             metadata = match.metadata
             
-            # Ensure text field exists
             if 'text' not in metadata:
                 continue
                 
-            # Create chunk object
             chunk = {
                 'text': metadata['text'],
                 'metadata': metadata,
                 'score': match.score
             }
             
-            # Store source information for attribution
             if 'sources_used' not in st.session_state:
                 st.session_state['sources_used'] = []
                 
@@ -61,13 +54,11 @@ def retrieve_chunks(query_embedding, query_text=None, namespace="default", top_k
             
             chunks.append(chunk)
         
-        # Print the number of chunks retrieved for debugging
         if len(chunks) > 0:
             st.success(f"Retrieved {len(chunks)} relevant chunks from document.")
         else:
             st.warning("No relevant chunks found in the document.")
         
-        # Store debug info
         if 'debug_info' not in st.session_state:
             st.session_state['debug_info'] = {}
             

@@ -16,7 +16,6 @@ from components.heart import show_main_app
 
 def main():
     """Main application entry point."""
-    # Check if we need to show the main app or landing page
     params = st.query_params
     
     if "page" in params and params["page"] == "main":
