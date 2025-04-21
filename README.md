@@ -152,6 +152,33 @@ Source Attribution
 * Navigate directly to specific sections in source documents
 * Verify information against the original content
 
+## Models and Tech stack Used in QueryQuack
+
+1. Embedding Model: all-MiniLM-L6-v2
+This model is used for generating vector embeddings from text chunks:
+* Efficient 384-dimensional embeddings that capture semantic meaning
+* Very Lightweight to run on CPU without requiring GPU resources
+* Good balance between performance and computational requirements
+* Well-supported through HuggingFace's ecosystem
+* Strong semantic understanding for accurate retrieval
+
+2. LLM for Response Generation: Gemini 1.5 Flash
+* Used for generating coherent responses based on retrieved context:
+* Free
+* Maintains good performance while being more cost-effective than other models available
+
+3. Vector Database: Pinecone
+Used for storing and retrieving vector embeddings:
+* Purpose-built for vector similarity search at scale
+* Millisecond query times even with large vector collections
+* Supports namespaces for organizing data by user session
+* Cloud-based with simple API integration
+* Specialized indexing for high-dimensional vectors
+* Optimized for semantic search rather than keyword matching
+* Supports metadata filtering for more targeted retrieval
+
+The system architecture uses specialized components for each part of the pipeline, creating an efficient, scalable solution for document question-answering without requiring specialized hardware.
+
 ## License
 
 QueryQuack is released under the [Apache License](LICENSE).
