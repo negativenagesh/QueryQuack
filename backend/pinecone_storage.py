@@ -14,18 +14,18 @@ load_dotenv()
 
 def initialize_pinecone():
     """Initialize and return Pinecone index."""
-    api_key = os.environ.get("PINECONE_API_KEY")
-    index_name = os.environ.get("PINECONE_INDEX", "queryquack")
+    api_key = os.environ.get("PINECONE_API_KEY") #pinecone api key
+    index_name = os.environ.get("PINECONE_INDEX", "queryquack") #index name in pinecone here queryquack
     
-    if not api_key:
+    if not api_key: #checking if no api key
         st.error("Pinecone API key not found. Please set the PINECONE_API_KEY in your .env file.")
         return None
     
     try:
-        pc = Pinecone(api_key=api_key)
+        pc = Pinecone(api_key=api_key) #pc object is Pinecone client with my api_key
         
-        existing_indexes = pc.list_indexes().names()
-        if index_name not in existing_indexes:
+        existing_indexes = pc.list_indexes().names() #existing_indexes contains list of existing index names from pc object 
+        if index_name not in existing_indexes: #if queryquack index is not in existing_indexes1 creating index with name queryquack,embedding dimension=384, metric for similarity search is cosine
             pc.create_index(
                 name=index_name,
                 dimension=384,
@@ -33,7 +33,7 @@ def initialize_pinecone():
             )
             st.info(f"Created new Pinecone index: {index_name}")
         
-        index = pc.Index(index_name)
+        index = pc.Index(index_name) #index object for queryquack index
         st.success("Successfully connected to Pinecone")
         return index
     except Exception as e:
@@ -53,31 +53,31 @@ def store_embeddings(embeddings: List, metadata_list: List[Dict], namespace: str
     Returns:
         bool: Success status
     """
-    index = initialize_pinecone()
-    if not index:
+    index = initialize_pinecone() #initialize queryquack index
+    if not index:   #checking if index exists
         return False
     
-    is_empty_embeddings = False
+    is_empty_embeddings = False #initially embeddings and metadata are not empty
     is_empty_metadata = False
     
-    if isinstance(embeddings, np.ndarray):
-        is_empty_embeddings = embeddings.size == 0
+    if isinstance(embeddings, np.ndarray): #checking if embeddings is of type numpy array, if it is
+        is_empty_embeddings = embeddings.size == 0 #checking if embeddings is empty and if its empty is_empty_embeddings set to True  
     else:
-        is_empty_embeddings = len(embeddings) == 0 if embeddings is not None else True
+        is_empty_embeddings = len(embeddings) == 0 if embeddings is not None else True #if embeddings are not numpy array and if embeddings are not none then checks if its length is 0 else True  
     
-    is_empty_metadata = len(metadata_list) == 0 if metadata_list is not None else True
+    is_empty_metadata = len(metadata_list) == 0 if metadata_list is not None else True #same like above
     
-    if is_empty_embeddings or is_empty_metadata:
+    if is_empty_embeddings or is_empty_metadata: #checking if both are empty
         st.warning("No embeddings to store")
         return False
     
-    total_vectors = len(embeddings) if not isinstance(embeddings, np.ndarray) else embeddings.shape[0]
+    total_vectors = len(embeddings) if not isinstance(embeddings, np.ndarray) else embeddings.shape[0] #if embeddings are not of numpy array type then total_vectors=len(embeddings) else .shape[0]
     
     try:
-        for i in range(0, total_vectors, batch_size):
-            batch_end = min(i + batch_size, total_vectors)
+        for i in range(0, total_vectors, batch_size):       #ranging from 0 to total_vectors and batch_size
+            batch_end = min(i + batch_size, total_vectors)  #batch_end is equal to i+batch_size if its minimmum else total_vecors
             
-            vectors_batch = []
+            vectors_batch = []              
             for j in range(i, batch_end):
                 vector_id = str(uuid.uuid4())
                 metadata = metadata_list[j].copy()
