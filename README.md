@@ -17,10 +17,10 @@ Quack the query, crack the PDF!
 
 <p align="center">
     <a href="https://github.com/negativenagesh/QueryQuack/stargazers"><img src="https://img.shields.io/github/stars/negativenagesh/QueryQuack" alt="Stars Badge"/></a>
-    <a href="https://github.com/negativenagesh/Resumai/network/members"><img src="https://img.shields.io/github/forks/negativenagesh/QueryQuack" alt="Forks Badge"/></a>
-    <a href="https://github.com/negativenagesh/Resumai/pulls"><img src="https://img.shields.io/github/issues-pr/negativenagesh/QueryQuack" alt="Pull Requests Badge"/></a>
-    <a href="https://github.com/negativenagesh/Resumai/issues"><img src="https://img.shields.io/github/issues/negativenagesh/QueryQuack" alt="Issues Badge"/></a>
-    <a href="https://github.com/negativenagesh/Resumai/blob/main/LICENSE"><img src="https://img.shields.io/github/license/negativenagesh/QueryQuack" alt="License Badge"/></a>
+    <a href="https://github.com/negativenagesh/QueryQuack/network/members"><img src="https://img.shields.io/github/forks/negativenagesh/QueryQuack" alt="Forks Badge"/></a>
+    <a href="https://github.com/negativenagesh/QueryQuack/pulls"><img src="https://img.shields.io/github/issues-pr/negativenagesh/QueryQuack" alt="Pull Requests Badge"/></a>
+    <a href="https://github.com/negativenagesh/QueryQuack/issues"><img src="https://img.shields.io/github/issues/negativenagesh/QueryQuack" alt="Issues Badge"/></a>
+    <a href="https://github.com/negativenagesh/QueryQuack/blob/main/LICENSE"><img src="https://img.shields.io/github/license/negativenagesh/QueryQuack" alt="License Badge"/></a>
 </p>
 
 QueryQuack transforms how you interact with PDF documents by allowing you to have conversations with your documents instead of manually searching through them. QueryQuack is a  document query engine that allows users to upload PDFs and query them using natural language. The system uses vector embeddings and retrieval-based question answering to provide relevant responses based on the document content.
